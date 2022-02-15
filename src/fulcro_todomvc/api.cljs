@@ -8,7 +8,9 @@
     [com.fulcrologic.fulcro.components :as comp]
     [com.fulcrologic.fulcro.algorithms.merge :as merge]
     [clojure.string :as str]
-    [com.fulcrologic.fulcro.algorithms.normalized-state :as fns]))
+    [com.fulcrologic.fulcro.algorithms.normalized-state :as fns]
+    [fulcro-todomvc.app :refer [app]]
+    ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Client-side API
@@ -47,7 +49,7 @@
 (defmutation todo-check
   "Check the given item, by id."
   [{:keys [id]}]
-  (action [{:keys [state]}] ; <- `state` is the atom holding the Client DB
+  (action [{:keys [state]}]                                 ; <- `state` is the atom holding the Client DB
     (swap! state assoc-in [:item/id id :item/complete] true))
   (remote [_] true))
 
@@ -78,10 +80,9 @@
 (defmutation todo-delete-item [{:keys [list-id id]}]
   (action [{:keys [state]}]
     (js/alert "Sorry, deleting items has been disabled for the workshop")
-    #_
-    (swap! state #(-> %
-                    (update-in [:list/id list-id :list/items] remove-from-idents id)
-                    (update :item/id dissoc id))))
+    #_(swap! state #(-> %
+                      (update-in [:list/id list-id :list/items] remove-from-idents id)
+                      (update :item/id dissoc id))))
   (error-action [{:keys [result] :as env}]
     (log/info "Delete cancelled!!!" result))
   (remote [_] #_true false))
@@ -113,14 +114,14 @@
         (fn [todos] (vec (remove (fn [ident] (is-complete? ident)) todos))))))
   (remote [_] true))
 
-(defn current-list-id [state] (get-in state [:application :root :todos 1]))
+(defn current-list-id [state] (second (get-in state [:root/current-list])))
 
 (defmutation set-desired-filter
   "Check to see if there was a desired filter. If so, put it on the now-active list and remove the desire. This is
   necessary because the HTML5 routing event comes to us on app load before we can load the list."
   [ignored]
   (action [{:keys [state]}]
-    (let [list-id        (current-list-id @state)
+    (let [list-id (current-list-id @state)
           desired-filter (get @state :root/desired-filter)]
       (when (and list-id desired-filter)
         (swap! state assoc-in [:list/id list-id :list/filter] desired-filter)
@@ -136,3 +137,10 @@
         (swap! state assoc-in [:list/id list-id :list/filter] filter)
         (swap! state assoc :root/desired-filter filter)))))
 
+(comment
+
+  (todo-filter {:filter true})
+   (let [state (app/current-state app)]
+    (current-list-id state))
+
+    )
